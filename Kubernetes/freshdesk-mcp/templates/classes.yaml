@@ -1,0 +1,15 @@
+{{- $Values := .Values -}}
+{{- $Release := .Release -}}
+{{- $Root := . -}}
+{{- range $index, $class := .Values.classes }}
+apiVersion: {{ $class.api }}
+kind: {{ $class.kind }}
+metadata:
+  name: {{ $Release.Namespace }}-{{ $class.name }}
+  namespace: {{ $Release.Namespace }}
+  labels:
+    {{- include "freshdesk-mcp.labels" $Root | nindent 4 }}
+
+{{ toYaml $class.values }}
+---
+{{- end }}

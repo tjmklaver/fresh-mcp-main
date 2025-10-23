@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 2,
+  "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+  "config": {
+    "digest": "sha256:placeholder",
+    "mediaType": "application/vnd.docker.container.image.v1+json"
+  },
+  "layers": [],
+  "annotations": {
+    "org.opencontainers.image.created": "2025-06-24T06:35:35Z",
+    "org.opencontainers.image.version": "http-server-and-alerts",
+    "org.opencontainers.image.revision": "6b1c558b2f65243ae27ae05d4622ff44919d0630",
+    "org.opencontainers.image.source": "https://github.com/your-org/fresh-mcp",
+    "org.opencontainers.image.url": "https://github.com/your-org/fresh-mcp",
+    "org.opencontainers.image.documentation": "https://github.com/your-org/fresh-mcp/blob/http-server-and-alerts/README.md",
+    "org.opencontainers.image.title": "Fresh MCP Server",
+    "org.opencontainers.image.description": "MCP server for Freshdesk integration",
+    "org.opencontainers.image.vendor": "Inspark",
+    "build.number": "local-20250624-083535",
+    "build.date": "2025-06-24T06:35:35Z",
+    "git.sha": "6b1c558b2f65243ae27ae05d4622ff44919d0630",
+    "git.ref": "http-server-and-alerts",
+    "platforms": "linux/amd64,linux/arm64"
+  }
+}

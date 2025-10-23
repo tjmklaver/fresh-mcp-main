@@ -1,0 +1,1 @@
+docker buildx build --platform linux/amd64,linx/arm64 --output=type=registry -t acrinfrakspweu00.azurecr.io/mcp/freshdesk:1.0.0 .

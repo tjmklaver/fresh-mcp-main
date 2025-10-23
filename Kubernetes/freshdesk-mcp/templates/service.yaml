@@ -1,0 +1,28 @@
+{{- $Values := .Values -}}
+{{- $Release := .Release -}}
+{{- $Root := . -}}
+
+{{- range $index, $port := .Values.deployment.ports }}
+{{- if $port.exposeService }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $port.name }}
+  namespace: {{ $Release.Namespace }}
+  labels:
+    {{- include "freshdesk-mcp.labels" $Root | nindent 4 }}
+spec:
+  {{- if $port.externalName }}
+  type: ExternalName
+  externalName: {{ $port.externalName }}
+  {{- else }}
+  type: ClusterIP
+  {{- end }}
+  ports:
+  - name: {{ $port.name }}
+    protocol: {{ $port.protocol }}
+    port: {{ $port.port }}
+  selector:
+    {{- include "freshdesk-mcp.labels" $Root | nindent 4 }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,121 @@
+name: Build and Push Container
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 
+  pull_request:
+    branches:
+      - main
+  release:
+    types: [published]
+
+env:
+  REGISTRY: acrinfrakspweu00.azurecr.io
+  IMAGE_NAME: fresh-mcp
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Azure Login with Federated Identity
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to Azure Container Registry
+        run: az acr login --name acrinfrakspweu00
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value={{date 'YYYYMMDD'}}-{{sha}}
+            type=raw,value=${{ github.run_number }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Create manifest
+        id: manifest
+        run: |
+          # Create manifest file
+          cat > manifest.json << EOF
+          {
+            "schemaVersion": 2,
+            "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+            "config": {
+              "digest": "sha256:placeholder",
+              "mediaType": "application/vnd.docker.container.image.v1+json"
+            },
+            "layers": [],
+            "annotations": {
+              "org.opencontainers.image.created": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+              "org.opencontainers.image.version": "${{ github.ref_name }}",
+              "org.opencontainers.image.revision": "${{ github.sha }}",
+              "org.opencontainers.image.source": "${{ github.server_url }}/${{ github.repository }}",
+              "org.opencontainers.image.url": "${{ github.server_url }}/${{ github.repository }}",
+              "org.opencontainers.image.documentation": "${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/README.md",
+              "org.opencontainers.image.title": "Fresh MCP Server",
+              "org.opencontainers.image.description": "MCP server for Freshdesk integration",
+              "org.opencontainers.image.vendor": "Inspark",
+              "build.number": "${{ github.run_number }}",
+              "build.date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+              "git.sha": "${{ github.sha }}",
+              "git.ref": "${{ github.ref }}",
+              "platforms": "linux/amd64,linux/arm64"
+            }
+          }
+          EOF
+          
+          echo "manifest-path=manifest.json" >> $GITHUB_OUTPUT
+
+      - name: Upload manifest as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-manifest
+          path: manifest.json
+          retention-days: 30
+
+      - name: Output image details
+        run: |
+          echo "## Container Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Registry**: ${{ env.REGISTRY }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image**: ${{ env.IMAGE_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Platforms**: linux/amd64, linux/arm64" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Number**: ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Git SHA**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Tags:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo '${{ steps.meta.outputs.tags }}' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

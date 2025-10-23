@@ -1,0 +1,127 @@
+{{- $Values := .Values -}}
+{{- $Release := .Release -}}
+{{- $Root := . -}}
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: "{{ .Release.Namespace }}-{{ .Values.deployment.name }}"
+  labels:
+    {{- include "freshdesk-mcp.labels" . | nindent 4 }}
+
+spec:
+  replicas: {{ .Values.deployment.replicaCount }}
+  {{- if .Values.deployment.strategy }}
+  strategy:
+    {{- toYaml .Values.deployment.strategy | nindent 4 }}
+
+  {{- end }}
+  selector:
+    matchLabels:
+      {{ include "freshdesk-mcp.labels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{ include "freshdesk-mcp.labels" . | nindent 8 }}
+    spec:
+      {{- if .Values.deployment.priorityClassName }}
+        priorityClassName: {{ .Values.deployment.priorityClassName }}
+      {{- end }}
+
+      {{- if .Values.deployment.agentpool }}
+      nodeSelector:
+        agentpool: {{ .Values.deployment.agentpool }}
+      {{- end }}
+
+      {{- if .Values.deployment.useserviceaccount }}
+      serviceAccountName: {{ .Release.Namespace }}
+      {{- end }}
+
+      {{- if .Values.deployment.containerUserid }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: {{ .Values.deployment.containerUserid }}
+      {{- else }}
+      hostUsers: false
+      {{- end }}
+
+      volumes:
+      {{- if .Values.deployment.usekeyvault }}
+      - name: {{ .Release.Namespace }}-{{ .Values.keyvault.keyvaultName }}
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: {{ .Release.Namespace }}-{{ .Values.keyvault.keyvaultName }}
+
+      - name: {{ .Release.Namespace }}-{{ .Values.keyvault.keyvaultName }}-secrets
+        projected:
+          sources:
+          {{- range $index, $KeyVaultSecret := .Values.keyvault.secretsobject }}
+            - secret:
+                name: {{ $KeyVaultSecret.name }}
+          {{- end }}
+      {{- end }}
+
+      containers:
+      - name: "{{ .Release.Namespace }}-{{ .Values.deployment.name }}"
+        image: {{ .Values.deployment.image.registry }}/{{ .Values.deployment.image.repository }}:{{.Values.deployment.image.tag }}
+        imagePullPolicy: {{ .Values.deployment.image.pullPolicy }}
+
+        resources:
+        {{- toYaml .Values.deployment.resources | nindent 12 }}
+
+        ports:
+        {{- range $index, $port := .Values.deployment.ports }}
+        - name: {{ $port.name }}
+          protocol: {{ $port.protocol }}
+          containerPort: {{ $port.port }}
+        {{- end }}
+
+        volumeMounts:
+        {{- if .Values.deployment.usekeyvault }}
+        - name: {{ .Release.Namespace }}-{{ .Values.keyvault.keyvaultName }}
+          mountPath: "/mnt/{{ .Release.Namespace }}-{{ .Values.keyvault.keyvaultName }}"
+          readOnly: true
+        {{- end }}
+
+        env:
+        {{- if .Values.deployment.usekeyvault }}
+        {{- range $index, $KeyVaultSecret := .Values.keyvault.secretsobject }}
+        - name: {{ $KeyVaultSecret.envName }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ $Release.Namespace }}-{{ $Values.keyvault.keyvaultName }}
+              key: {{ $KeyVaultSecret.name }}
+        {{- end }}
+        {{- end }}
+
+        {{- if .Values.deployment.livenessProbe }}
+        livenessProbe:
+        {{- toYaml .Values.deployment.livenessProbe | nindent 12 }}
+        {{- end }}
+        {{- if .Values.deployment.readinessProbe }}
+        readinessProbe:
+        {{- toYaml .Values.deployment.readinessProbe | nindent 12 }}
+        {{- end }}
+
+---
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: "{{ .Release.Namespace }}-{{ .Values.deployment.name }}"
+  labels:
+    {{- include "freshdesk-mcp.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: "{{ .Release.Namespace }}-{{ .Values.deployment.name }}"
+  minReplicas: {{ .Values.deployment.horizontalPodAutoscaler.minReplicas }}
+  maxReplicas: {{ .Values.deployment.horizontalPodAutoscaler.maxReplicas }}
+  metrics:
+    {{- toYaml .Values.deployment.horizontalPodAutoscaler.metrics | nindent 4 }}

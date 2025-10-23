@@ -1,0 +1,37 @@
+{{- if .Values.keyvault }}
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+
+metadata:
+  name: {{ .Release.Namespace }}-{{ .Values.keyvault.keyvaultName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "freshdesk-mcp.labels" . | nindent 4 }}
+
+spec:
+  provider: azure
+  secretObjects:
+  - secretName: {{ .Release.Namespace }}-{{ .Values.keyvault.keyvaultName }}
+    type: Opaque
+    data:
+    {{- range $index, $secretobject := .Values.keyvault.secretsobject }}
+    - objectName: {{ $secretobject.name }}
+      key: {{ $secretobject.name }}
+    {{- end }}
+  parameters:
+    usePodIdentity: "{{ .Values.keyvault.usePodIdentity }}"
+    useVMManagedIdentity: "{{ .Values.keyvault.useVMManagedIdentity }}"
+    userAssignedIdentityID: "{{ .Values.keyvault.userAssignedIdentityID }}"
+    keyvaultName: "{{ .Values.keyvault.keyvaultName }}"
+    tenantId: "{{ .Values.keyvault.tenantId }}"
+    cloudName: ""
+    objects: |
+      array:
+        {{- range $index, $secretobject := .Values.keyvault.secretsobject }}
+        - |
+          objectName: {{ $secretobject.name }}
+          objectType: secret
+          objectversion: "{{ $secretobject.version }}"
+        {{- end }}
+---
+{{- end }}

@@ -1,0 +1,93 @@
+# Image to pull.
+
+classes:
+- name: disable-preemption
+  api: scheduling.k8s.io/v1
+  kind: PriorityClass
+  values:
+    value: 1000000
+    preemptionPolicy: Never
+    globalDefault: false
+    description: "This priority class will not cause other pods to be preempted."
+
+
+deployment:
+  name: freshdesk-mcp
+  containerUserid: 1000
+  image:
+    pullPolicy: Always
+    registry: acrinfrakspweu00.azurecr.io
+    repository: mcp/freshdesk
+    tag: 1.0.2
+
+  horizontalPodAutoscaler:
+    minReplicas: 1
+    maxReplicas: 4
+    metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "250m"
+
+  ports:
+  - name: fresh
+    exposeService: true
+    protocol: TCP
+    port: 8080
+
+  agentpool: ''
+  usekeyvault: true
+  replicaCount: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: fresh
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: fresh
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+
+keyvault:
+  keyvaultName: "kv-infr-aks-p-weu-00"
+  usePodIdentity: false
+  useVMManagedIdentity: true
+  tenantId: "2b55fa1c-0add-4120-a8e4-9987abf4d504"
+  userAssignedIdentityID: "73a42264-e55b-4c76-a176-292f77e4223d"
+  secretsobject:
+  - name: freshsandboxAPIKEY
+    envName: FRESHDESK_API_KEY
+    version: ""
+
+  - name: freshsandboxURL
+    envName: FRESHDESK_DOMAIN
+    version: ""
+
+  - name: freshsandboxMCPAPIKEY
+    envName: MCP_API_KEY
+    version: ""
