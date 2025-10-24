@@ -1,7 +1,6 @@
 FROM ghcr.io/astral-sh/uv:bookworm-slim
 
 RUN apt-get update && apt-get install -y build-essential python3-dev
-RUN apt-get remove -y nginx nginx-common || true
 
 RUN adduser --disabled-password --uid 1000 mcpserver
 RUN mkdir /.cache
