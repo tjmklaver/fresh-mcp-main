@@ -30,4 +30,4 @@ jobs:
           context: ./src
           file: ./src/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/freshdesk-mcp:latest
+          tags: ghcr.io/${{ github.actor }}/freshdesk-mcp:latest
