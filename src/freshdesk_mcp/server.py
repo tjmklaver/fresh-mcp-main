@@ -1564,9 +1564,6 @@ def create_http_app():
     http_logger = logging.getLogger('HTTPServer')
 
     app = FastAPI(title="Freshdesk MCP Server", version="1.2.0")
-    @app.get("/.well-known/ai-plugin.json")
-    def serve_manifest():
-        return FileResponse(os.path.join(os.path.dirname(__file__), ".well-known", "ai-plugin.json"))
 
     # Authentication configuration
     MCP_API_KEY = os.getenv("MCP_API_KEY")
