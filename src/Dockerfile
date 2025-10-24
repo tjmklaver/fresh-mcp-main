@@ -10,5 +10,5 @@ COPY --chown=mcpserver:mcpserver freshdesk_mcp /home/mcpserver/freshdesk_mcp
 WORKDIR /home/mcpserver/freshdesk_mcp
 RUN uv sync --frozen
 
-EXPOSE 8080
-ENTRYPOINT ["uv", "run", "/home/mcpserver/freshdesk_mcp/server.py", "--http", "8080"]
+EXPOSE 8000
+ENTRYPOINT ["uv", "run", "/home/mcpserver/freshdesk_mcp/server.py", "--http", "8000"]
