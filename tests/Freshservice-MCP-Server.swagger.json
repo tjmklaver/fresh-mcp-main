@@ -1,0 +1,96 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Freshdesk MCP Server",
+    "version": "1.2.0",
+    "description": "MCP Streamable endpoint for Copilot Studio. Tools and resources are auto-discovered from the MCP server."
+  },
+  "host": "freshservice-mcp-a7a4e5e7a4c3ejbc.westeurope-01.azurewebsites.net",
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json",
+    "text/event-stream"
+  ],
+  "paths": {
+    "/mcp": {
+      "post": {
+        "operationId": "InvokeMcp",
+        "summary": "MCP Streamable endpoint",
+        "description": "Entry point for Model Context Protocol (Streamable transport). Copilot Studio connects here to discover and invoke MCP tools/resources.",
+        "parameters": [
+          {
+            "name": "Accept",
+            "in": "header",
+            "required": true,
+            "type": "string",
+            "enum": [
+              "text/event-stream, application/json"
+            ],
+            "default": "text/event-stream, application/json"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "jsonrpc": {
+                  "type": "string",
+                  "example": "2.0"
+                },
+                "id": {
+                  "type": "integer",
+                  "example": 1
+                },
+                "method": {
+                  "type": "string",
+                  "example": "tools/call"
+                },
+                "params": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "example": "get_ticket"
+                    },
+                    "arguments": {
+                      "type": "object",
+                      "properties": {
+                        "ticket_id": {
+                          "type": "integer",
+                          "example": 1575316
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stream started"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {},
+  "parameters": {},
+  "responses": {},
+  "securityDefinitions": {},
+  "security": [
+    {
+      "api_key": []
+    }
+  ],
+  "tags": []
+}
